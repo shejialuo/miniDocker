@@ -29,6 +29,9 @@ func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig) {
 
 	sendInitCommand(commandArray, writePipe)
 	parent.Wait()
+	mntPath := "/root/mnt/"
+	rootPath := "/root/"
+	container.DeleteWorkSpace(rootPath, mntPath)
 }
 
 // Use pipe to send the message to the child

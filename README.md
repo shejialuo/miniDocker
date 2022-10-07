@@ -26,6 +26,8 @@ wget https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/trusty/ubuntu-14.04.6-
 ```sh
 sudo apt-get update
 sudo apt-get install linux-image-3.13.0-83-generic
+sudo apt-get install linux-image-extra-$(uname -r)
+sudo modprobe aufs
 ```
 
 Change the configuration of the `grub` to start the corresponding kernel.
