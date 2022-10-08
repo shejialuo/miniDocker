@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"miniDocker/container"
+	"os"
 	"strconv"
 	"syscall"
 
@@ -59,4 +60,22 @@ func getContainerInfoByName(containerName string) (*container.ContainerInfo, err
 		return nil, err
 	}
 	return &containerInfo, nil
+}
+
+func removeContainer(containerName string) {
+	containerInfo, err := getContainerInfoByName(containerName)
+
+	if err != nil {
+		logrus.Errorf("Get container %s info error %v", containerName, err)
+		return
+	}
+	if containerInfo.Status != container.Stop {
+		logrus.Errorf("Couldn't remove running container")
+		return
+	}
+	configPath := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	if err := os.RemoveAll(configPath); err != nil {
+		logrus.Errorf("Remove file %s error %v", configPath, err)
+		return
+	}
 }
