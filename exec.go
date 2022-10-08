@@ -23,7 +23,7 @@ const (
 // We just create a new process to exec. It's an ugly way
 // for calling C code. Really
 func ExecContainer(containerName string, commandArray []string) {
-	pid, err := getContainerPidByName(containerName)
+	pid, err := GetContainerPidByName(containerName)
 	if err != nil {
 		logrus.Errorf("exec container getContainerPidByName %s error %v", containerName, err)
 		return
@@ -45,7 +45,7 @@ func ExecContainer(containerName string, commandArray []string) {
 	}
 }
 
-func getContainerPidByName(containerName string) (string, error) {
+func GetContainerPidByName(containerName string) (string, error) {
 	configPath := fmt.Sprintf(container.DefaultInfoLocation, containerName)
 	configFilePath := configPath + container.ConfigName
 	contentBytes, err := os.ReadFile(configFilePath)
