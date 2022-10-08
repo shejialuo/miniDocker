@@ -44,3 +44,14 @@ Next configure the environment.
 ```sh
 export PATH=$PATH:/usr/local/go/bin
 ```
+
+### Other things
+
+Due to the upgrade of the Go, when using cgo, the linker is
+a bit out-of-date. So we need use another tool:
+
+```sh
+sudo apt-get update
+sudo apt-get install binutils-2.26
+export PATH="/usr/lib/binutils-2.26/bin:$PATH"
+```
