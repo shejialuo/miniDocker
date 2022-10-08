@@ -11,8 +11,8 @@ import (
 )
 
 // Run is the interface for the `run` command.
-func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig, volume string) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
@@ -31,7 +31,7 @@ func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig) {
 	parent.Wait()
 	mntPath := "/root/mnt/"
 	rootPath := "/root/"
-	container.DeleteWorkSpace(rootPath, mntPath)
+	container.DeleteWorkSpace(rootPath, mntPath, volume)
 }
 
 // Use pipe to send the message to the child

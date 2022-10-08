@@ -30,6 +30,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset",
 			Usage: "cpuset limit",
 		},
+		cli.StringFlag{
+			Name:  "v",
+			Usage: "volume",
+		},
 	},
 	/**
 	 * We use `Run` function to do the actual action
@@ -48,7 +52,8 @@ var runCommand = cli.Command{
 			CpuSet:      context.String("cpuset"),
 			CpuShare:    context.String("cpushare"),
 		}
-		Run(tty, commandArray, resourceConf)
+		volume := context.String("v")
+		Run(tty, commandArray, resourceConf, volume)
 		return nil
 	},
 }

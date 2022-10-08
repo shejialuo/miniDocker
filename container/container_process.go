@@ -3,6 +3,7 @@ package container
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -12,7 +13,7 @@ import (
 // be only invoked once. And wait for the child process (container)
 // terminate, when the container terminate, parent should terminate
 // too.
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 
 	// Here, we create a new pipe
 	readPipe, writePipe, err := NewPipe()
@@ -43,7 +44,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 
 	mntPath := "/root/mnt/"
 	rootPath := "/root/"
-	NewWorkSpace(rootPath, mntPath)
+	NewWorkSpace(rootPath, mntPath, volume)
 	cmd.Dir = mntPath
 
 	// We return the `writePipe` to the parent process, make it to write.
@@ -60,10 +61,21 @@ func NewPipe() (*os.File, *os.File, error) {
 	return read, write, nil
 }
 
-func NewWorkSpace(rootPath string, mntPath string) {
+func NewWorkSpace(rootPath string, mntPath string, volume string) {
 	CreateReadOnlyLayer(rootPath)
 	CreateWriteLayer(rootPath)
 	CreateMountPoint(rootPath, mntPath)
+	// Here, we need to handle mount the volume to the container
+	if volume != "" {
+		volumePaths := volumePathExtract(volume)
+		length := len(volumePaths)
+		if length == 2 && volumePaths[0] != "" && volumePaths[1] != "" {
+			MountVolume(rootPath, mntPath, volumePaths)
+			logrus.Infof("%q", volumePaths)
+		} else {
+			logrus.Infof("Volume parameter input is not correct.")
+		}
+	}
 }
 
 // The read only layer should be in the `/root/busybox`, if
@@ -110,13 +122,49 @@ func CreateMountPoint(rootPath string, mntPath string) {
 	}
 }
 
-func DeleteWorkSpace(rootPath string, mntPath string) {
-	DeleteMountPoint(rootPath, mntPath)
+// We should mount the volume specified by the user
+func MountVolume(rootPath string, mntPath string, volumePaths []string) {
+	parentPath, containerPath := volumePaths[0], volumePaths[1]
+	// I don't think it's good idea just create a new directory.
+	// It is really messy here.
+	if err := os.Mkdir(parentPath, 0777); err != nil {
+		logrus.Infof("Mkdir parent dir %s error. %v", parentPath, err)
+	}
+	containerVolumePath := mntPath + containerPath
+	if err := os.Mkdir(containerVolumePath, 0777); err != nil {
+		logrus.Infof("Mkdir container dir %s error. %v", containerVolumePath, err)
+	}
+
+	dirs := "dirs=" + parentPath
+	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", containerVolumePath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logrus.Errorf("Mount volume failed. %v", err)
+	}
+}
+
+func DeleteWorkSpace(rootPath string, mntPath string, volume string) {
+	DeleteMountPoint(rootPath, mntPath, volume)
 	DeleteWriteLayer(rootPath)
 }
 
 // We should umount the path and delete the path
-func DeleteMountPoint(rootPath string, mntPath string) {
+// Also, we need to umount the volume
+func DeleteMountPoint(rootPath string, mntPath string, volume string) {
+	if volume != "" {
+		volumePaths := volumePathExtract(volume)
+		length := len(volumePaths)
+		if length == 2 && volumePaths[0] != "" && volumePaths[1] != "" {
+			containerPath := mntPath + volumePaths[1]
+			cmd := exec.Command("umount", containerPath)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				logrus.Errorf("umount volume failed. %v", err)
+			}
+		}
+	}
 	cmd := exec.Command("umount", mntPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -145,4 +193,9 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func volumePathExtract(volume string) []string {
+	volumePaths := strings.Split(volume, ":")
+	return volumePaths
 }
