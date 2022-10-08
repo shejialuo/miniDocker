@@ -1,6 +1,7 @@
 package container
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,13 +27,14 @@ const (
 	Exit                string = "exited"
 	DefaultInfoLocation string = "/var/run/miniDocker/%s/"
 	ConfigName          string = "config.json"
+	ContainerLogFile    string = "container.log"
 )
 
 // This function creates the new parent process, it should
 // be only invoked once. And wait for the child process (container)
 // terminate, when the container terminate, parent should terminate
 // too.
-func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string, containerName string) (*exec.Cmd, *os.File) {
 
 	// Here, we create a new pipe
 	readPipe, writePipe, err := NewPipe()
@@ -56,6 +58,19 @@ func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	} else {
+		// Now we need to redirect the standard output
+		logPath := fmt.Sprintf(DefaultInfoLocation, containerName)
+		if err := os.MkdirAll(logPath, 0622); err != nil {
+			logrus.Errorf("NewParentProcess mkdir %s error %v", logPath, err)
+		}
+		logFilePath := logPath + ContainerLogFile
+		logFile, err := os.Create(logFilePath)
+		if err != nil {
+			logrus.Errorf("NewParentProcess create file %s error %v", logFilePath, err)
+			return nil, nil
+		}
+		cmd.Stdout = logFile
 	}
 
 	// Here, we let the readPipe descriptor for the child to be 3.

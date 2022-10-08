@@ -18,7 +18,7 @@ import (
 // Run is the interface for the `run` command.
 func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig, volume string,
 	containerName string) {
-	parent, writePipe := container.NewParentProcess(tty, volume)
+	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
