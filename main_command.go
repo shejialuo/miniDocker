@@ -13,7 +13,7 @@ import (
 var runCommand = cli.Command{
 	Name: "run",
 	Usage: `Create a container with namespace and cgroups limit
-	       miniDocker run -it [command]`,
+	       miniDocker run -it [image] [command]`,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "it",
@@ -55,6 +55,9 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			commandArray = append(commandArray, arg)
 		}
+		imageName := commandArray[0]
+		commandArray = commandArray[1:]
+
 		tty := context.Bool("it")
 		detach := context.Bool("d")
 		if tty && detach {
@@ -67,7 +70,7 @@ var runCommand = cli.Command{
 		}
 		volume := context.String("v")
 		containerName := context.String("name")
-		Run(tty, commandArray, resourceConf, volume, containerName)
+		Run(tty, commandArray, resourceConf, volume, containerName, imageName)
 		return nil
 	},
 }
@@ -90,11 +93,12 @@ var commitCommand = cli.Command{
 	Name:  "commit",
 	Usage: "commit a container into image",
 	Action: func(context *cli.Context) error {
-		if len(context.Args()) < 1 {
+		if len(context.Args()) < 2 {
 			return fmt.Errorf("missing container name")
 		}
-		imageName := context.Args().Get(0)
-		commitContainer(imageName)
+		containerName := context.Args().Get(0)
+		imageName := context.Args().Get(1)
+		commitContainer(containerName, imageName)
 		return nil
 	},
 }

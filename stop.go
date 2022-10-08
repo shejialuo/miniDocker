@@ -78,4 +78,6 @@ func removeContainer(containerName string) {
 		logrus.Errorf("Remove file %s error %v", configPath, err)
 		return
 	}
+	// Now we can safely delete the workspace for daemon container
+	container.DeleteWorkSpace(containerInfo.Volume, containerName)
 }

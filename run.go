@@ -17,8 +17,14 @@ import (
 
 // Run is the interface for the `run` command.
 func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig, volume string,
-	containerName string) {
-	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
+	containerName string, imageName string) {
+
+	containerID := randStringBytes(10)
+	if containerName == "" {
+		containerName = containerID
+	}
+
+	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
@@ -28,7 +34,7 @@ func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig, volume
 	}
 
 	// We should record the container information into persistent storage
-	containerName, err := recordContainerInfo(parent.Process.Pid, commandArray, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, commandArray, containerName, containerID, volume)
 	if err != nil {
 		logrus.Errorf("Record container info error %v", err)
 		return
@@ -49,13 +55,8 @@ func Run(tty bool, commandArray []string, res *subsystems.ResourceConfig, volume
 	if tty {
 		parent.Wait()
 		deleteContainerInfo(containerName)
+		container.DeleteWorkSpace(volume, containerName)
 	}
-	// TODO: How to delete the workspace?
-	// Now, the question is that parent should not delete the workspace
-	// when there is a daemon container. Well...
-	// mntPath := "/root/mnt/"
-	// rootPath := "/root/"
-	// container.DeleteWorkSpace(rootPath, mntPath, volume)
 }
 
 // Use pipe to send the message to the child
@@ -79,13 +80,11 @@ func randStringBytes(n int) string {
 
 // Record container information in the `/var/run/miniDocker/
 // <container name>/config`.
-func recordContainerInfo(containerPID int, commandArray []string, containerName string) (string, error) {
-	id := randStringBytes(10)
+func recordContainerInfo(containerPID int, commandArray []string, containerName, id, volume string) (string, error) {
+
 	createTime := time.Now().Format("2006-01-02 15:04:05")
 	command := strings.Join(commandArray, "")
-	if containerName == "" {
-		containerName = id
-	}
+
 	containerInfo := &container.ContainerInfo{
 		ID:          id,
 		Pid:         strconv.Itoa(containerPID),
@@ -93,6 +92,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 		CreatedTime: createTime,
 		Status:      container.Running,
 		Name:        containerName,
+		Volume:      volume,
 	}
 
 	jsonBytes, err := json.Marshal(containerInfo)
