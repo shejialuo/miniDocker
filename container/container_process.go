@@ -9,6 +9,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// In order to get the status of the detached container
+// information, we need a data structure to describe it
+type ContainerInfo struct {
+	Pid         string `json:"pid"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Command     string `json:"command"`
+	CreatedTime string `json:"createTime"`
+	Status      string `json:"status"`
+}
+
+const (
+	Running             string = "running"
+	Stop                string = "stop"
+	Exit                string = "exited"
+	DefaultInfoLocation string = "/var/run/miniDocker/%s/"
+	ConfigName          string = "config.json"
+)
+
 // This function creates the new parent process, it should
 // be only invoked once. And wait for the child process (container)
 // terminate, when the container terminate, parent should terminate

@@ -34,6 +34,14 @@ var runCommand = cli.Command{
 			Name:  "v",
 			Usage: "volume",
 		},
+		cli.BoolFlag{
+			Name:  "d",
+			Usage: "detach container",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "container name",
+		},
 	},
 	/**
 	 * We use `Run` function to do the actual action
@@ -47,13 +55,18 @@ var runCommand = cli.Command{
 			commandArray = append(commandArray, arg)
 		}
 		tty := context.Bool("it")
+		detach := context.Bool("d")
+		if tty && detach {
+			return fmt.Errorf("it and d parameter can not be both provided")
+		}
 		resourceConf := &subsystems.ResourceConfig{
 			MemoryLimit: context.String("m"),
 			CpuSet:      context.String("cpuset"),
 			CpuShare:    context.String("cpushare"),
 		}
 		volume := context.String("v")
-		Run(tty, commandArray, resourceConf, volume)
+		containerName := context.String("name")
+		Run(tty, commandArray, resourceConf, volume, containerName)
 		return nil
 	},
 }
@@ -81,6 +94,15 @@ var commitCommand = cli.Command{
 		}
 		imageName := context.Args().Get(0)
 		commitContainer(imageName)
+		return nil
+	},
+}
+
+var listCommand = cli.Command{
+	Name:  "ps",
+	Usage: "list all the containers",
+	Action: func(context *cli.Context) error {
+		ListContainers()
 		return nil
 	},
 }
