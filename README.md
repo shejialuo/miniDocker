@@ -55,3 +55,9 @@ sudo apt-get update
 sudo apt-get install binutils-2.26
 export PATH="/usr/lib/binutils-2.26/bin:$PATH"
 ```
+
+---
+
+At now, I have studied all the parts except the network.
+Well, it is a really wonderful tutorial. What I cannot build,
+I do not understand.
